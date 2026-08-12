@@ -1,0 +1,22 @@
+{
+  "generator": {
+    "name": "guacamol_vae",
+    "model_type": "guacamol",
+    "weights_filename": "guacamol_vae.pkl",
+    "weights_url": "",
+    "sha256": "",
+    "cache_dir": ".models",
+    "entrypoint": ""
+  },
+  "strategy": "sampling",
+  "num_samples": 256,
+  "seed_smiles": ["CCO", "c1ccccc1"],
+  "targets": ["P00533", "P04637"],
+  "top_k": 50,
+  "output_dir": "results/generation",
+  "dtiam_model_paths": {
+    "dti": "",
+    "dta": "",
+    "moa": ""
+  }
+}

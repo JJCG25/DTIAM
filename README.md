@@ -65,3 +65,37 @@ python training_validation.py dti yamanishi_08 protein_coldstart
 ```
 
 And so on.
+
+## De novo generation pipeline (pretrained VAE + DTIAM)
+
+An end-to-end generation workflow is available in `code/generation_pipeline.py`:
+
+```bash
+python code/generation_pipeline.py --config scripts/generation_config.example.json
+```
+
+Pipeline flow:
+
+```
+Pretrained VAE -> Generate Candidates -> Filter (Lipinski + QED) ->
+DTIAM Predictions (DTI/DTA/MOA) -> Score & Rank -> Export CSV/JSON
+```
+
+### Configuration
+
+Use `scripts/generation_config.example.json` as a template:
+- `generator`: pretrained model config (`weights_url`, `weights_filename`, optional `sha256`, optional `entrypoint`)
+- `strategy`: `sampling`, `interpolation`, or `optimization`
+- `targets`: one or more target protein identifiers
+- `dtiam_model_paths`: optional local AutoGluon predictor paths for `dti`, `dta`, and `moa`
+
+### Model download and caching
+
+Model weights are automatically downloaded on first use and cached in `.models/`.
+If `sha256` is provided, the checksum is verified before loading.
+
+For convenience, run:
+
+```bash
+scripts/run_generation_pipeline.sh
+```

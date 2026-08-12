@@ -13,4 +13,5 @@ data/moa/activation/features/
 data/moa/inhibition/data_folds/
 data/moa/inhibition/features/
 models/
+.models/
 results/
