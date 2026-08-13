@@ -22,6 +22,8 @@
 # key set in the acaricide config) and AutoGluon prediction is CPU-only here
 # too, so this job never touches the GPU.
 
+set -euo pipefail
+
 # Create logs directory if it doesn't exist
 mkdir -p /home/juanjo/thesis/DTIAM/logs
 

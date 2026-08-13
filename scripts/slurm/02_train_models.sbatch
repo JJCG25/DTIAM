@@ -13,14 +13,16 @@
 # stage 1 having produced compound_features.pkl/protein_features.pkl for
 # each dataset.
 #
-# best_quality preset with k-fold CV (10 folds DTI, 5 folds DTA/MOA) at up
-# to 1h/fold -- this can genuinely take most of the 12h budget above for
-# DTI. Trim --preset in code/train_models.sh (e.g. to good_quality) or lower
-# time_limit in train_dtiam_models.py if you want a faster first pass.
+# best_quality preset, --ensemble-only (trains once on 100% of the data,
+# saved directly to a top-level loadable path -- see train_models.sh).
+# Trim --preset in code/train_models.sh (e.g. to good_quality) if you want
+# a faster first pass.
 #
 # No --gres=gpu:1: TabularPredictor.fit() is never given num_gpus anywhere
 # in this codebase, so LightGBM/CatBoost/XGBoost train on CPU regardless --
 # reserving the GPU here would just hold it idle for up to 12h.
+
+set -euo pipefail
 
 # Create logs directory if it doesn't exist
 mkdir -p /home/juanjo/thesis/DTIAM/logs

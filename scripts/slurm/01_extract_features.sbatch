@@ -22,6 +22,8 @@
 # --time is set to this partition's 24h max to give ESM-2-650M room to run
 # on ~2000-3000 unique sequences without batching.
 
+set -euo pipefail
+
 # Create logs directory if it doesn't exist
 mkdir -p /home/juanjo/thesis/DTIAM/logs
 
