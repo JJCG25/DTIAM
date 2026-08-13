@@ -1,4 +1,6 @@
-code/__pycache__/
+__pycache__/
+*.egg-info/
+logs/
 code/AutogluonModels/
 data/dta/davis/data_folds/
 data/dta/davis/features/
