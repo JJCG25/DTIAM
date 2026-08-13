@@ -25,6 +25,28 @@ except Exception:  # pragma: no cover - optional dependency for tests/docs
     pd = None
 
 
+def _load_bermol_model(path: str, device: str):
+    """
+    Load a BerMol pickle, remapping any CUDA-tagged tensor storages to
+    `device`. BerMolModel_base.pkl was saved from a CUDA-resident model, so
+    a plain pickle.load()/dill.load() on a machine or job without CUDA
+    access raises "Attempting to deserialize object on a CUDA device but
+    torch.cuda.is_available() is False" as soon as it reaches those
+    tensors -- torch's own nested torch.load() call (invoked internally by
+    the storage objects' unpickling) has no way to know it should remap
+    them without map_location, and a plain pickle.load() has no hook to
+    pass that through. Temporarily patching torch.load is the standard
+    workaround for exactly this.
+    """
+    original_torch_load = torch.load
+    torch.load = lambda *a, **kw: original_torch_load(*a, map_location=torch.device(device), **kw)
+    try:
+        with open(path, "rb") as handle:
+            return pickle.load(handle)
+    finally:
+        torch.load = original_torch_load
+
+
 class DTIAMFeatureBuilder:
     """
     Loads a pretrained BerMol compound encoder and a precomputed ESM-2 protein
@@ -45,8 +67,7 @@ class DTIAMFeatureBuilder:
 
         self.device = device
 
-        with open(bermol_model_path, "rb") as handle:
-            self._comp_model = pickle.load(handle)
+        self._comp_model = _load_bermol_model(bermol_model_path, device)
         self._comp_model.model.to(device)
         self._comp_model.model.eval()
 

@@ -11,14 +11,34 @@ from tqdm import tqdm
 from collections import OrderedDict
 
 
+def _load_bermol_model(path: str, device: str):
+    """
+    Load a BerMol pickle, remapping any CUDA-tagged tensor storages to
+    `device`. BerMolModel_base.pkl was saved from a CUDA-resident model, so
+    a plain pickle.load()/dill.load() on a machine or job without CUDA
+    access can raise "Attempting to deserialize object on a CUDA device but
+    torch.cuda.is_available() is False" -- torch's internal nested
+    torch.load() call (invoked while unpickling the storage objects) has no
+    map_location to remap them with, and a plain pickle.load() has no hook
+    to pass one through. Temporarily patching torch.load is the standard
+    workaround for exactly this.
+    """
+    original_torch_load = torch.load
+    torch.load = lambda *a, **kw: original_torch_load(*a, map_location=torch.device(device), **kw)
+    try:
+        with open(path, "rb") as handle:
+            return pickle.load(handle)
+    finally:
+        torch.load = original_torch_load
+
+
 def cal_comp_feat(data: pd.DataFrame, model_path: str, device: str = "cuda") -> dict:
     """
     Calculate the compound features using the compound pre-trained model
     """
-    with open(model_path, "rb") as f:
-        comp_model = pickle.load(f)
-        comp_model.model.to(device)
-        comp_model.model.eval()
+    comp_model = _load_bermol_model(model_path, device)
+    comp_model.model.to(device)
+    comp_model.model.eval()
 
     def smi_to_vec(smi):
         output = comp_model.transform(smi, device)
