@@ -1,3 +1,4 @@
+import argparse
 import os
 import torch
 import pickle
@@ -32,13 +33,13 @@ def cal_comp_feat(data: pd.DataFrame, model_path: str, device: str = "cuda") -> 
     return comp_feat
 
 
-def cal_prot_feat(data: pd.DataFrame) -> dict:
+def cal_prot_feat(data: pd.DataFrame, device: str = "cuda") -> dict:
     """
     Calculate the protein features using the protein pre-trained model
     """
     # model, alphabet = esm.pretrained.esm2_t30_150M_UR50D()
     model, alphabet = esm.pretrained.esm2_t33_650M_UR50D()
-    model = model.cuda()
+    model = model.to(device)
     batch_converter = alphabet.get_batch_converter()
     model.eval()
     repr_layer = model.num_layers
@@ -48,7 +49,7 @@ def cal_prot_feat(data: pd.DataFrame) -> dict:
             (pid, seq[:max_length]),
         ]
         _, _, batch_tokens = batch_converter(data)
-        batch_tokens = batch_tokens.to(device="cuda", non_blocking=True)
+        batch_tokens = batch_tokens.to(device=device, non_blocking=True)
 
         with torch.no_grad():
             results = model(batch_tokens, repr_layers=[repr_layer])
@@ -65,7 +66,7 @@ def cal_prot_feat(data: pd.DataFrame) -> dict:
     return prot_feat
 
 
-def extract_dti() -> None:
+def extract_dti(bermol_model_path: str, device: str = "cuda") -> None:
     for dataset in ["yamanishi_08", "hetionet"]:
         data_path = "../data/dti/" + dataset + "/"
         save_path = data_path + "features/"
@@ -85,17 +86,17 @@ def extract_dti() -> None:
             tar_seq = tar_seq[tar_seq["pid"].isin(targets)]
 
         print(f"Extracting compound features for {dataset} dataset ...")
-        comp_feat = cal_comp_feat(drug_smi, bermol_model_path)
+        comp_feat = cal_comp_feat(drug_smi, bermol_model_path, device=device)
         with open(save_path + "compound_features.pkl", "wb") as f:
             pickle.dump(comp_feat, f)
 
         print(f"Extracting protein features for {dataset} dataset ...")
-        prot_feat = cal_prot_feat(tar_seq)
+        prot_feat = cal_prot_feat(tar_seq, device=device)
         with open(save_path + "protein_features.pkl", "wb") as f:
             pickle.dump(prot_feat, f)
 
 
-def extract_dta() -> None:
+def extract_dta(bermol_model_path: str, device: str = "cuda") -> None:
     for dataset in ["davis", "kiba"]:
         data_path = "../data/dta/" + dataset + "/"
         save_path = data_path + "features/"
@@ -110,17 +111,17 @@ def extract_dta() -> None:
             tar_seq = pd.DataFrame(proteins.items(), columns=["pid", "seq"])
 
         print(f"Extracting compound features for {dataset} dataset ...")
-        comp_feat = cal_comp_feat(drug_smi, bermol_model_path)
+        comp_feat = cal_comp_feat(drug_smi, bermol_model_path, device=device)
         with open(save_path + "compound_features.pkl", "wb") as f:
             pickle.dump(comp_feat, f)
 
         print(f"Extracting protein features for {dataset} dataset ...")
-        prot_feat = cal_prot_feat(tar_seq)
+        prot_feat = cal_prot_feat(tar_seq, device=device)
         with open(save_path + "protein_features.pkl", "wb") as f:
             pickle.dump(prot_feat, f)
 
 
-def extract_moa() -> None:
+def extract_moa(bermol_model_path: str, device: str = "cuda") -> None:
     for dataset in ["activation", "inhibition"]:
         data_path = "../data/moa/" + dataset + "/"
         save_path = data_path + "features/"
@@ -132,18 +133,32 @@ def extract_moa() -> None:
         tar_seq.columns = ["pid", "seq"]
 
         print(f"Extracting compound features for {dataset} dataset ...")
-        comp_feat = cal_comp_feat(drug_smi, bermol_model_path)
+        comp_feat = cal_comp_feat(drug_smi, bermol_model_path, device=device)
         with open(save_path + "compound_features.pkl", "wb") as f:
             pickle.dump(comp_feat, f)
 
         print(f"Extracting protein features for {dataset} dataset ...")
-        prot_feat = cal_prot_feat(tar_seq)
+        prot_feat = cal_prot_feat(tar_seq, device=device)
         with open(save_path + "protein_features.pkl", "wb") as f:
             pickle.dump(prot_feat, f)
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Extract BerMol/ESM-2 features for the benchmark datasets")
+    parser.add_argument(
+        "--device",
+        default="cuda",
+        help="torch device to run BerMol/ESM-2 on (e.g. 'cuda', 'cpu'). Use 'cpu' if your "
+        "GPU's compute capability is newer than what the pinned torch build supports "
+        "(RuntimeError: no kernel image is available for execution on the device).",
+    )
+    parser.add_argument("--bermol-model-path", default="../BerMolModel_base.pkl")
+    args = parser.parse_args()
+
+    extract_dti(args.bermol_model_path, device=args.device)
+    extract_dta(args.bermol_model_path, device=args.device)
+    extract_moa(args.bermol_model_path, device=args.device)
+
+
 if __name__ == "__main__":
-    bermol_model_path = "../BerMolModel_base.pkl"
-    extract_dti()
-    extract_dta()
-    extract_moa()
+    main()

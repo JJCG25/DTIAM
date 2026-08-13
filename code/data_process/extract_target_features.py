@@ -31,6 +31,12 @@ def main() -> None:
     parser.add_argument("--id-column", default="target_chembl_id")
     parser.add_argument("--sequence-column", default="secuencia_primaria")
     parser.add_argument("--output", required=True, help="Output protein_features.pkl path")
+    parser.add_argument(
+        "--device",
+        default="cuda",
+        help="torch device to run ESM-2 on (e.g. 'cuda', 'cpu'). Use 'cpu' if your GPU's "
+        "compute capability is newer than what the pinned torch build supports.",
+    )
     args = parser.parse_args()
 
     targets = pd.read_csv(args.targets_csv)
@@ -39,7 +45,7 @@ def main() -> None:
     targets = targets.drop_duplicates(subset=["pid"])
 
     print(f"Extracting ESM-2 features for {len(targets)} targets...")
-    prot_feat = cal_prot_feat(targets)
+    prot_feat = cal_prot_feat(targets, device=args.device)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
