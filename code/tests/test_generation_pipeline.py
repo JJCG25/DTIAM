@@ -9,11 +9,19 @@ except Exception:  # pragma: no cover
     pd = None
 
 from generation.generator import PretrainedModelConfig, VAEGenerator, load_generation_config
+from generation.predictor import DTIAMPredictor
 
 try:
     from generation.scorer import CandidateScorer
 except Exception:  # pragma: no cover
     CandidateScorer = None
+
+try:
+    from rdkit import Chem
+    from generation.genetic_algorithm import MoleculeGA, crossover, mutate
+except Exception:  # pragma: no cover
+    Chem = None
+    MoleculeGA = crossover = mutate = None
 
 
 class _FakeBackend:
@@ -64,6 +72,83 @@ class ScorerTests(unittest.TestCase):
         filtered = scorer.filter_druglike(df)
         self.assertEqual(len(filtered), 1)
         self.assertIn("qed", filtered.columns)
+
+    def test_score_and_rank_is_per_target_when_multiple_targets_present(self):
+        # target A's candidates all score higher than target B's -- a single
+        # global top_k would previously return zero results for target B.
+        candidates = pd.DataFrame(
+            [{"target": "A", "smiles": "CCO", "qed": 0.9}, {"target": "A", "smiles": "CCN", "qed": 0.8}]
+            + [{"target": "B", "smiles": "CCC", "qed": 0.1}, {"target": "B", "smiles": "CCF", "qed": 0.05}]
+        )
+        predictions = pd.DataFrame(index=candidates.index)
+        scorer = CandidateScorer()
+        ranked = scorer.score_and_rank(candidates, predictions, top_k=1)
+        self.assertEqual(sorted(ranked["target"]), ["A", "B"])
+
+    def test_score_and_rank_is_global_for_a_single_target(self):
+        candidates = pd.DataFrame(
+            [{"target": "A", "smiles": "CCO", "qed": 0.9}, {"target": "A", "smiles": "CCN", "qed": 0.1}]
+        )
+        predictions = pd.DataFrame(index=candidates.index)
+        scorer = CandidateScorer()
+        ranked = scorer.score_and_rank(candidates, predictions, top_k=1)
+        self.assertEqual(len(ranked), 1)
+        self.assertEqual(ranked.iloc[0]["smiles"], "CCO")
+
+
+@unittest.skipIf(pd is None or Chem is None, "GA dependencies are missing")
+class GeneticAlgorithmTests(unittest.TestCase):
+    def test_mutate_and_crossover_produce_valid_molecules(self):
+        mol_a = Chem.MolFromSmiles("CC(C)Cc1ccc(cc1)C(C)C(=O)O")
+        mol_b = Chem.MolFromSmiles("CCN(CC)CC")
+
+        for _ in range(20):
+            mutated = mutate(mol_a)
+            if mutated is not None:
+                self.assertIsNotNone(Chem.MolFromSmiles(Chem.MolToSmiles(mutated)))
+
+        child = None
+        for _ in range(20):
+            child = crossover(mol_a, mol_b)
+            if child is not None:
+                break
+        self.assertIsNotNone(child, "crossover should succeed at least once in 20 tries")
+        self.assertIsNotNone(Chem.MolFromSmiles(Chem.MolToSmiles(child)))
+
+    def test_ga_run_improves_population_and_stays_valid(self):
+        class FakePredictor(DTIAMPredictor):
+            def predict_all(self, features):
+                out = pd.DataFrame(index=features.index)
+                out["dta"] = [1.0 if "Cl" in s else 0.0 for s in features["smiles"]]
+                return out
+
+        class FakeFeatureBuilder:
+            """Stands in for DTIAMFeatureBuilder: skips real BerMol/ESM-2 embedding
+            and just passes SMILES through, so the FakePredictor above can score
+            them without needing those heavy optional dependencies in tests."""
+
+            def build(self, smiles_list, target):
+                return pd.DataFrame({"smiles": list(smiles_list), "target": target})
+
+        ga = MoleculeGA(
+            mutation_rate=0.7, crossover_rate=0.5, elite_fraction=0.2, qed_weight=0.0
+        )
+        results = ga.run(
+            predictor=FakePredictor(model_paths={"dta": "unused"}),
+            task="dta",
+            target="P00533",
+            seed_smiles=["CCO", "c1ccccc1", "CCN(CC)CC"],
+            feature_builder=FakeFeatureBuilder(),
+            population_size=20,
+            n_generations=8,
+            top_k=3,
+        )
+        self.assertTrue(len(results) > 0)
+        for smi, score in results:
+            self.assertIsNotNone(Chem.MolFromSmiles(smi))
+        # the fitness signal exclusively rewards chlorinated molecules,
+        # so the top result should have found one within 8 generations.
+        self.assertIn("Cl", results[0][0])
 
 
 if __name__ == "__main__":

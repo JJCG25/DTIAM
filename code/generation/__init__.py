@@ -1,10 +1,14 @@
 from .generator import ModelWeightManager, PretrainedModelConfig, VAEGenerator
 
 try:
-    from .predictor import DTIAMPredictor, smiles_target_to_features
+    from .predictor import DTIAMPredictor
 except Exception:  # pragma: no cover
     DTIAMPredictor = None
-    smiles_target_to_features = None
+
+try:
+    from .featurizer import DTIAMFeatureBuilder
+except Exception:  # pragma: no cover
+    DTIAMFeatureBuilder = None
 
 try:
     from .scorer import CandidateScorer, ScoreWeights, export_candidates
@@ -18,7 +22,7 @@ __all__ = [
     "PretrainedModelConfig",
     "VAEGenerator",
     "DTIAMPredictor",
-    "smiles_target_to_features",
+    "DTIAMFeatureBuilder",
     "CandidateScorer",
     "ScoreWeights",
     "export_candidates",

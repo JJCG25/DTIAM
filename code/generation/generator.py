@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
+import numpy as np
+
 
 @dataclass
 class PretrainedModelConfig:
@@ -154,6 +156,26 @@ class VAEGenerator:
             return self._to_smiles_list(result)
 
         raise ValueError(f"Unsupported generation strategy: {strategy}")
+
+    def encode(self, smiles: Iterable[str]) -> "np.ndarray":
+        """Encode SMILES strings to latent vectors using the loaded backend."""
+        backend = self._load_backend()
+        if not hasattr(backend, "encode"):
+            raise AttributeError(
+                "Loaded backend does not support encoding SMILES to latent vectors."
+            )
+        result = backend.encode(list(smiles))
+        return np.asarray(result)
+
+    def decode(self, latents: "np.ndarray") -> List[str]:
+        """Decode latent vectors back to SMILES strings using the loaded backend."""
+        backend = self._load_backend()
+        if not hasattr(backend, "decode"):
+            raise AttributeError(
+                "Loaded backend does not support decoding latent vectors to SMILES."
+            )
+        result = backend.decode(latents)
+        return self._to_smiles_list(result)
 
     @classmethod
     def from_dict(cls, config: Dict[str, Any]) -> "VAEGenerator":

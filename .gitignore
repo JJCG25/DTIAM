@@ -15,3 +15,7 @@ data/moa/inhibition/features/
 models/
 .models/
 results/
+data/acaricide/features/
+BerMolModel_base.pkl
+pesticide_properties_unified*.csv
+pesticide_ligand_target_relations*.csv

@@ -50,6 +50,12 @@ class CandidateScorer:
         prediction_df: pd.DataFrame,
         top_k: int,
     ) -> pd.DataFrame:
+        """
+        Rank candidates by composite score. When multiple distinct 'target'
+        values are present, top_k applies per target -- otherwise a single
+        target's candidates would crowd out every other target's results
+        from one global top_k list.
+        """
         merged = candidates.join(prediction_df, how="left")
         for col in ["dti", "dta", "moa", "qed"]:
             if col not in merged.columns:
@@ -62,6 +68,10 @@ class CandidateScorer:
             + self.weights.qed * merged["qed"]
         )
         merged = merged.sort_values("score", ascending=False)
+
+        if "target" in merged.columns and merged["target"].nunique() > 1:
+            return merged.groupby("target", sort=False, group_keys=False).head(top_k).reset_index(drop=True)
+
         return merged.head(top_k).reset_index(drop=True)
 
 

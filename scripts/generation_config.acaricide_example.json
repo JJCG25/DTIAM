@@ -1,0 +1,36 @@
+{
+  "_comment": "Target-conditioned ligand generation against acaricide-relevant targets curated in data/acaricide/targets.csv (see code/data_process/select_acaricide_targets.py). Uses the genetic_algorithm strategy, which needs no generator backend/weights -- only seed_smiles and a trained DTIAM predictor.",
+  "generator": {
+    "name": "guacamol_vae",
+    "model_type": "guacamol",
+    "weights_filename": "guacamol_vae.pkl",
+    "weights_url": "",
+    "sha256": "",
+    "cache_dir": ".models",
+    "entrypoint": ""
+  },
+  "strategy": "genetic_algorithm",
+  "seed_smiles": ["CCO", "c1ccccc1", "CCN(CC)CC", "CC(=O)Oc1ccccc1C(=O)O"],
+  "_targets_comment": "All 53 target_chembl_id values from data/acaricide/targets.csv (see its moa_class column for which MOA each one belongs to). score_and_rank returns top_k per target when multiple targets are present, so this yields a ranked ligand list for each of the 53 targets, not one blended global list.",
+  "targets": ["CHEMBL2111384", "CHEMBL3350222", "CHEMBL3038459", "CHEMBL2362997", "CHEMBL4078", "CHEMBL3301382", "CHEMBL2366408", "CHEMBL2242743", "CHEMBL220", "CHEMBL614865", "CHEMBL3762", "CHEMBL2046266", "CHEMBL5445", "CHEMBL3868", "CHEMBL4113", "CHEMBL2285348", "CHEMBL2366581", "CHEMBL2093872", "CHEMBL3986", "CHEMBL2111392", "CHEMBL2094121", "CHEMBL4106151", "CHEMBL2095190", "CHEMBL4768", "CHEMBL2366514", "CHEMBL2366446", "CHEMBL2366456", "CHEMBL2366586", "CHEMBL2366577", "CHEMBL2366589", "CHEMBL2366584", "CHEMBL2366576", "CHEMBL2366583", "CHEMBL2366585", "CHEMBL2366575", "CHEMBL2366579", "CHEMBL2366587", "CHEMBL2366578", "CHEMBL2366582", "CHEMBL2366580", "CHEMBL6045", "CHEMBL4403", "CHEMBL2133", "CHEMBL3388", "CHEMBL2366428", "CHEMBL2366440", "CHEMBL2366437", "CHEMBL3350224", "CHEMBL3350223", "CHEMBL3199", "CHEMBL2242744", "CHEMBL2242729", "CHEMBL2366511"],
+  "top_k": 20,
+  "output_dir": "results/generation/acaricide",
+  "_dtiam_model_paths_comment": "Populate after running code/train_models.sh (or code/train_dtiam_models.py). ESM-2 generalizes across proteins, so a predictor trained on the davis/yamanishi benchmark data can score these acaricide targets without retraining.",
+  "dtiam_model_paths": {
+    "dta": "models/dta_davis"
+  },
+  "bermol_model_path": "BerMolModel_base.pkl",
+  "_protein_features_path_comment": "Produced by: python code/data_process/extract_target_features.py --targets-csv data/acaricide/targets.csv --output data/acaricide/features/protein_features.pkl",
+  "protein_features_path": "data/acaricide/features/protein_features.pkl",
+  "genetic_algorithm": {
+    "task": "dta",
+    "population_size": 100,
+    "n_generations": 30,
+    "mutation_rate": 0.5,
+    "crossover_rate": 0.5,
+    "elite_fraction": 0.1,
+    "tournament_size": 3,
+    "qed_weight": 0.3,
+    "top_k_per_target": 20
+  }
+}

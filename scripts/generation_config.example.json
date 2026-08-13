@@ -9,14 +9,47 @@
     "entrypoint": ""
   },
   "strategy": "sampling",
+  "generation_strategy": "sampling",
   "num_samples": 256,
   "seed_smiles": ["CCO", "c1ccccc1"],
   "targets": ["P00533", "P04637"],
   "top_k": 50,
   "output_dir": "results/generation",
+  "_dtiam_model_paths_comment": "Populate these only after running code/train_models.sh (or code/train_dtiam_models.py), which writes trained AutoGluon predictors to models/<task>_<dataset>/. Leave a task empty/omit it to skip predictions for that task.",
   "dtiam_model_paths": {
-    "dti": "",
-    "dta": "",
-    "moa": ""
+    "dti": "models/dti_yamanishi_08",
+    "dta": "models/dta_davis",
+    "moa": "models/moa_activation"
+  },
+  "_feature_builder_comment": "Required whenever dtiam_model_paths is set: bermol_model_path is the pretrained compound encoder (BerMolModel_base.pkl), and protein_features_path is the ESM-2 protein_features.pkl produced by code/data_process/extract_feature.py for whichever dataset's targets you're scoring against (its keys must match the ids used in 'targets' above).",
+  "bermol_model_path": "BerMolModel_base.pkl",
+  "protein_features_path": "data/dta/davis/features/protein_features.pkl",
+  "_conditional_generation_examples": {
+    "bayesian_opt": {
+      "comment": "Set strategy to 'bayesian_opt' for target-conditioned latent-space optimization. Requires a generator backend with encode()/decode() support and a dtiam_model_paths entry for the optimized task.",
+      "strategy": "bayesian_opt",
+      "conditional_generation": {
+        "task": "dta",
+        "latent_dim": 56,
+        "n_initial": 20,
+        "n_iterations": 30,
+        "batch_size": 10
+      }
+    },
+    "genetic_algorithm": {
+      "comment": "Set strategy to 'genetic_algorithm' for target-conditioned graph-based GA optimization (RDKit atom mutation + fragment crossover). Works with any generator/no generator at all -- only needs seed_smiles and a dtiam_model_paths entry for the optimized task.",
+      "strategy": "genetic_algorithm",
+      "genetic_algorithm": {
+        "task": "dta",
+        "population_size": 100,
+        "n_generations": 30,
+        "mutation_rate": 0.5,
+        "crossover_rate": 0.5,
+        "elite_fraction": 0.1,
+        "tournament_size": 3,
+        "qed_weight": 0.3,
+        "top_k_per_target": 20
+      }
+    }
   }
 }

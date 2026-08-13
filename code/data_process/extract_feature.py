@@ -143,7 +143,7 @@ def extract_moa() -> None:
 
 
 if __name__ == "__main__":
-    bermol_model_path = "../models/BerMolModel_base.pkl"
+    bermol_model_path = "../BerMolModel_base.pkl"
     extract_dti()
     extract_dta()
     extract_moa()
