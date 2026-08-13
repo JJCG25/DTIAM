@@ -1,4 +1,6 @@
 autogluon==0.5.2
+transformers>=4.18.0,<4.21.0
+tokenizers>=0.11.1,!=0.11.3,<0.13
 dill==0.3.4
 fair_esm==2.0.0
 guacamol>=0.5.4
