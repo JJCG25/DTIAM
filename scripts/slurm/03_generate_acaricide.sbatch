@@ -7,7 +7,6 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
 #
 # Stage 3: run the genetic-algorithm generation pipeline against all 53
 # curated acaricide targets (data/acaricide/targets.csv), producing a
@@ -18,6 +17,10 @@
 # defaults in generation_config.acaricide_example.json (100 x 30) are a
 # reasonable first full sweep. Cut population_size/n_generations for a
 # faster first pass, then rerun deeper on whichever targets look promising.
+#
+# No --gres=gpu:1: DTIAMFeatureBuilder defaults to device="cpu" (no "device"
+# key set in the acaricide config) and AutoGluon prediction is CPU-only here
+# too, so this job never touches the GPU.
 
 # Create logs directory if it doesn't exist
 mkdir -p /home/juanjo/thesis/DTIAM/logs

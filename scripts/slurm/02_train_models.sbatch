@@ -7,7 +7,6 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=40G
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
 #
 # Stage 2: train the DTIAM AutoGluon predictors (dti/yamanishi_08,
 # dta/davis, moa/activation) used to score generated candidates. Depends on
@@ -18,6 +17,10 @@
 # to 1h/fold -- this can genuinely take most of the 12h budget above for
 # DTI. Trim --preset in code/train_models.sh (e.g. to good_quality) or lower
 # time_limit in train_dtiam_models.py if you want a faster first pass.
+#
+# No --gres=gpu:1: TabularPredictor.fit() is never given num_gpus anywhere
+# in this codebase, so LightGBM/CatBoost/XGBoost train on CPU regardless --
+# reserving the GPU here would just hold it idle for up to 12h.
 
 # Create logs directory if it doesn't exist
 mkdir -p /home/juanjo/thesis/DTIAM/logs
