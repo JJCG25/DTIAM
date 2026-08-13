@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # Train DTIAM models for all tasks and datasets.
 #

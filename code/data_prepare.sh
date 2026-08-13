@@ -3,6 +3,7 @@
 # device defaults to 'cuda'; pass 'cpu' if your GPU's compute capability is
 # newer than what the pinned torch build supports (RuntimeError: no kernel
 # image is available for execution on the device).
+set -euo pipefail
 DEVICE=${1:-cuda}
 
 python data_process/data_split_dti.py
