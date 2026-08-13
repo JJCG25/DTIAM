@@ -7,7 +7,6 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
 #SBATCH --partition=gpu
-#SBATCH --gres=gpu:1
 #
 # Stage 1: feature extraction.
 # - BerMol (compound) + ESM-2 (protein) features for the six benchmark
