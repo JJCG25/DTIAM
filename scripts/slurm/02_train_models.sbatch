@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=dtiam_train
+#SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
 #SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=40G
-#SBATCH --partition=gpu
+#SBATCH --partition=prod
 #
 # Stage 2: train the DTIAM AutoGluon predictors (dti/yamanishi_08,
 # dta/davis, moa/activation) used to score generated candidates. Depends on

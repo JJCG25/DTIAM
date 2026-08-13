@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=dtiam_extract
+#SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
 #SBATCH --time=24:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
-#SBATCH --partition=gpu
+#SBATCH --partition=prod
 #
 # Stage 1: feature extraction.
 # - BerMol (compound) + ESM-2 (protein) features for the six benchmark
