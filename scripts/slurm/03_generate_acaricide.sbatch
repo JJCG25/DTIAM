@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=dtiam_generate_acaricide
+#SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
 #SBATCH --time=04:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
-#SBATCH --partition=gpu
+#SBATCH --partition=prod
 #
 # Stage 3: run the genetic-algorithm generation pipeline against all 53
 # curated acaricide targets (data/acaricide/targets.csv), producing a
