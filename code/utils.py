@@ -1,3 +1,4 @@
+import os
 from typing import Tuple, Dict
 from math import sqrt
 
@@ -10,8 +11,8 @@ from sklearn import metrics
 def load_data(data_path: str, fold_idx: int, comp_feat: Dict, prot_feat: Dict) -> Tuple:
     """Load training and testing data."""
     print("Loading data ...")
-    train = pd.read_csv(data_path + "train_fold_" + str(fold_idx) + ".csv")
-    test = pd.read_csv(data_path + "test_fold_" + str(fold_idx) + ".csv")
+    train = pd.read_csv(os.path.join(data_path, f"train_fold_{fold_idx}.csv"))
+    test = pd.read_csv(os.path.join(data_path, f"test_fold_{fold_idx}.csv"))
     train.columns = ["cid", "pid", "label"]
     test.columns = ["cid", "pid", "label"]
     return pack(train, comp_feat, prot_feat), pack(test, comp_feat, prot_feat)
