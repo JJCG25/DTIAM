@@ -214,16 +214,16 @@ class DTIAMModelTrainer:
         print(f"Training single ensemble {self.task.upper()} model on {self.dataset}")
         print(f"{'='*70}\n")
         
-        # Load all data
+        # Load the full dataset once. train_fold_0 and test_fold_0 are a
+        # complete, non-overlapping partition of every labeled pair (KFold's
+        # train/test split for fold 0), so their union is the entire dataset
+        # exactly once -- concatenating all k train folds instead would
+        # duplicate every pair (k-1) times, since each pair sits in every
+        # train fold except the single one where it's held out as that
+        # fold's test set.
         folds_path = os.path.join(self.dataset_path, "data_folds", "warm_start")
-        all_train_data = []
-        
-        for fold_idx in range(self.k_folds):
-            train_data, _ = load_data(folds_path, fold_idx, self.comp_feat, self.prot_feat)
-            all_train_data.append(train_data)
-        
-        # Combine all folds
-        combined_data = pd.concat(all_train_data, ignore_index=True)
+        train_data, test_data = load_data(folds_path, 0, self.comp_feat, self.prot_feat)
+        combined_data = pd.concat([train_data, test_data], ignore_index=True)
         print(f"Combined training data shape: {combined_data.shape}")
         
         # Train ensemble
