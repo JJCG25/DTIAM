@@ -223,6 +223,66 @@ class MoleculeGA:
 
         return fitness, task_scores
 
+    def _fitness_multi(
+        self,
+        population: List[Chem.Mol],
+        predictor,
+        task: str,
+        targets: List[str],
+        feature_builder: "DTIAMFeatureBuilder",
+        aggregation: str = "min",
+        target_weights: Optional[Dict[str, float]] = None,
+    ) -> Tuple["np.ndarray", "np.ndarray"]:
+        """
+        Score `population` against every target in `targets` and aggregate
+        into a single fitness per molecule -- used for joint/polypharmacology
+        optimization instead of one independent GA run per target.
+
+        DTIAMFeatureBuilder caches the BerMol compound embedding per SMILES
+        (see featurizer.py), so scoring the same population against N targets
+        only repeats the cheap protein-side lookup + predictor call N times,
+        not the expensive compound encoding.
+        """
+        if np is None:
+            raise ImportError("numpy is required to run the genetic algorithm.")
+
+        smiles = [Chem.MolToSmiles(mol) for mol in population]
+
+        target_scores = np.zeros((len(population), len(targets)))
+        for j, target in enumerate(targets):
+            features = feature_builder.build(smiles, target)
+            target_scores[:, j] = np.asarray(predictor.predict_all(features)[task].values, dtype=float)
+
+        # Normalize each target's scores to [0, 1] independently before
+        # aggregating -- targets can sit on very different score scales, so a
+        # raw mean/min would let whichever target has the widest numeric
+        # range dominate the aggregate.
+        span = target_scores.max(axis=0) - target_scores.min(axis=0) + 1e-8
+        normalized = (target_scores - target_scores.min(axis=0)) / span
+
+        if aggregation == "min":
+            # Worst-case across targets: rewards candidates that are
+            # reasonably good against ALL targets, not just good on average.
+            task_component = normalized.min(axis=1)
+        elif aggregation == "mean":
+            task_component = normalized.mean(axis=1)
+        elif aggregation == "weighted":
+            if not target_weights:
+                raise ValueError("aggregation='weighted' requires target_weights")
+            weights = np.array([target_weights[t] for t in targets], dtype=float)
+            weights = weights / weights.sum()
+            task_component = normalized @ weights
+        else:
+            raise ValueError(f"Unknown aggregation: {aggregation!r} (expected 'min', 'mean', or 'weighted')")
+
+        if self.qed_weight:
+            qed_scores = np.array([QED.qed(mol) for mol in population])
+            fitness = (1 - self.qed_weight) * task_component + self.qed_weight * qed_scores
+        else:
+            fitness = task_component
+
+        return fitness, target_scores
+
     def _tournament_select(self, population: List[Chem.Mol], fitness: "np.ndarray") -> Chem.Mol:
         contenders = random.sample(range(len(population)), min(self.tournament_size, len(population)))
         winner = max(contenders, key=lambda i: fitness[i])
@@ -293,4 +353,93 @@ class MoleculeGA:
         results = [(Chem.MolToSmiles(population[i]), float(task_scores[i])) for i in order]
 
         print(f"\nGA complete. Top {task} molecule: {results[0][0]} ({results[0][1]:.4f})\n")
+        return results
+
+    def run_multi_target(
+        self,
+        predictor,
+        task: str,
+        targets: List[str],
+        seed_smiles: List[str],
+        feature_builder: "DTIAMFeatureBuilder",
+        population_size: int = 100,
+        n_generations: int = 30,
+        top_k: int = 20,
+        aggregation: str = "min",
+        target_weights: Optional[Dict[str, float]] = None,
+    ) -> List[Tuple[str, Dict[str, float], float]]:
+        """
+        Run the GA optimizing jointly against multiple target proteins at
+        once (polypharmacology-style: one candidate scored against every
+        target every generation), instead of one independent run per target
+        like `run()`.
+
+        Returns up to `top_k` (smiles, {target: raw_task_score}, fitness)
+        tuples from the final population, sorted best-first by the
+        aggregated fitness (see `aggregation` in `_fitness_multi`).
+        """
+        if len(targets) < 2:
+            raise ValueError("run_multi_target requires at least 2 targets (use run() for a single target).")
+
+        print(f"\n{'='*70}")
+        print(f"Genetic algorithm: multi-target optimization ({aggregation}) against {len(targets)} targets")
+        print(f"{'='*70}\n")
+
+        population = self._seed_population(seed_smiles, population_size)
+        fitness, target_scores = self._fitness_multi(
+            population, predictor, task, targets, feature_builder, aggregation, target_weights
+        )
+        print(f"Generation 0: best fitness = {fitness.max():.4f} ({len(population)} molecules)")
+
+        for gen in range(1, n_generations + 1):
+            n_elite = max(1, int(self.elite_fraction * population_size))
+            elite_order = np.argsort(fitness)[::-1][:n_elite]
+            next_population = [population[i] for i in elite_order]
+            seen = {Chem.MolToSmiles(m) for m in next_population}
+
+            attempts = 0
+            max_attempts = population_size * 20
+            while len(next_population) < population_size and attempts < max_attempts:
+                attempts += 1
+                child = None
+                if random.random() < self.crossover_rate:
+                    parent_a = self._tournament_select(population, fitness)
+                    parent_b = self._tournament_select(population, fitness)
+                    child = crossover(parent_a, parent_b)
+
+                if child is None:
+                    parent = self._tournament_select(population, fitness)
+                    child = mutate(parent)
+                elif random.random() < self.mutation_rate:
+                    mutated = mutate(child)
+                    if mutated is not None:
+                        child = mutated
+
+                if child is None:
+                    continue
+                canon = Chem.MolToSmiles(child)
+                if canon in seen:
+                    continue
+                seen.add(canon)
+                next_population.append(child)
+
+            population = next_population
+            fitness, target_scores = self._fitness_multi(
+                population, predictor, task, targets, feature_builder, aggregation, target_weights
+            )
+
+            if gen % 5 == 0 or gen == n_generations:
+                print(f"Generation {gen}: best fitness = {fitness.max():.4f}")
+
+        order = np.argsort(fitness)[::-1][:top_k]
+        results = []
+        for i in order:
+            smi = Chem.MolToSmiles(population[i])
+            per_target = {t: float(target_scores[i, j]) for j, t in enumerate(targets)}
+            results.append((smi, per_target, float(fitness[i])))
+
+        print(f"\nGA complete. Top molecule: {results[0][0]} (fitness={results[0][2]:.4f})\n")
+        for t, score in results[0][1].items():
+            print(f"  {t}: {task}={score:.4f}")
+        print()
         return results

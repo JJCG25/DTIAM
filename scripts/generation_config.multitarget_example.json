@@ -1,0 +1,39 @@
+{
+  "_comment": "Multi-target (polypharmacology-style) generation: one GA population scored jointly against several acaricide targets at once, instead of one independent run per target. Uses real, literature-backed ligand seeds (joined from the two raw pesticide reference CSVs) instead of generic placeholders -- falls back to seed_smiles if no real ligand is found for any of the targets.",
+  "targets": ["CHEMBL220", "CHEMBL4078", "CHEMBL3199", "CHEMBL2111384", "CHEMBL2366437"],
+  "_targets_comment": "Example: 3 acetylcholinesterase targets + 2 nicotinic AChR targets -- a candidate that scores well against all 5 jointly is a broader-spectrum acaricide bet than one tuned to a single target.",
+  "task": "dta",
+  "aggregation": "min",
+  "_aggregation_comment": "'min' rewards candidates good against ALL targets (worst-case); 'mean' rewards good-on-average candidates; 'weighted' needs target_weights below.",
+  "target_weights": {
+    "CHEMBL220": 1.0,
+    "CHEMBL4078": 1.0,
+    "CHEMBL3199": 1.0,
+    "CHEMBL2111384": 1.0,
+    "CHEMBL2366437": 1.0
+  },
+  "use_real_seeds": true,
+  "seed_source": {
+    "relations_csv": "pesticide_ligand_target_relations_PROTEINS_WITH_DOI_FINAL.csv",
+    "properties_csv": "pesticide_properties_unified(1).csv",
+    "max_per_target": 20
+  },
+  "seed_smiles": ["CCO", "c1ccccc1", "CCN(CC)CC", "CC(=O)Oc1ccccc1C(=O)O"],
+  "_seed_smiles_comment": "Fallback only, used if use_real_seeds finds nothing for these targets.",
+  "genetic_algorithm": {
+    "population_size": 100,
+    "n_generations": 30,
+    "mutation_rate": 0.5,
+    "crossover_rate": 0.5,
+    "elite_fraction": 0.1,
+    "tournament_size": 3,
+    "qed_weight": 0.3,
+    "top_k": 20
+  },
+  "output_dir": "results/generation/multitarget",
+  "dtiam_model_paths": {
+    "dta": "models/dta_davis"
+  },
+  "bermol_model_path": "BerMolModel_base.pkl",
+  "protein_features_path": "data/acaricide/features/protein_features.pkl"
+}
