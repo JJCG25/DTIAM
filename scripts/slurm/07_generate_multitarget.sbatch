@@ -3,19 +3,25 @@
 #SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
-#SBATCH --time=02:00:00
+#SBATCH --time=02:30:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
 #SBATCH --partition=prod
 #
 # Multi-target (polypharmacology-style) GA run: one population scored jointly
-# against the 5 targets in generation_config.multitarget_example.json (3x
-# acetylcholinesterase + 2x nicotinic AChR), instead of 53 independent
-# single-target runs like 03_generate_acaricide.sbatch. Much less total
-# compute than that job -- 30 generations x 5 targets here, vs. 30
-# generations x 53 targets there -- so a 2h ceiling is comfortable headroom,
-# not a tight estimate.
+# against the 7 targets in generation_config.multitarget_example.json -- ONE
+# TARGET PER MOA CLASS (acetylcholinesterase, nicotinic AChR, GABA, ryanodine,
+# mitochondrial complex I, ecdysone, Ca channel), instead of 53 independent
+# single-target runs like 03_generate_acaricide.sbatch. This is the hard,
+# cross-mechanism version of multi-target (see the config's _comment) -- a
+# hit here would need to work across genuinely different pharmacophores, so
+# don't be surprised if 'min' aggregation converges on a mediocre-everywhere
+# compromise rather than a strong candidate; that's an expected, reportable
+# outcome for this experiment, not a bug. Much less total compute than
+# 03_generate_acaricide.sbatch regardless -- 30 generations x 7 targets here,
+# vs. 30 generations x 53 targets there -- so this ceiling is comfortable
+# headroom, not a tight estimate.
 #
 # Requires the raw pesticide_ligand_target_relations_PROTEINS_WITH_DOI_FINAL.csv
 # and pesticide_properties_unified(1).csv at the repo root (see

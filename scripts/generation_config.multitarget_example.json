@@ -1,16 +1,18 @@
 {
-  "_comment": "Multi-target (polypharmacology-style) generation: one GA population scored jointly against several acaricide targets at once, instead of one independent run per target. Uses real, literature-backed ligand seeds (joined from the two raw pesticide reference CSVs) instead of generic placeholders -- falls back to seed_smiles if no real ligand is found for any of the targets.",
-  "targets": ["CHEMBL220", "CHEMBL4078", "CHEMBL3199", "CHEMBL2111384", "CHEMBL2366437"],
-  "_targets_comment": "Example: 3 acetylcholinesterase targets + 2 nicotinic AChR targets -- a candidate that scores well against all 5 jointly is a broader-spectrum acaricide bet than one tuned to a single target.",
+  "_comment": "TRUE cross-mechanism polypharmacology experiment: one target per MOA class (7 classes, 7 targets), so a candidate that scores well here would have to hit genuinely different binding sites/pharmacophores at once -- not just multiple variants of the same mechanism. This is intentionally the hard version: with a simple atom-mutation GA starting from 4-12 seeds, expect 'min' aggregation to converge on a mediocre-everywhere compromise rather than a strong hit, since AChE/nAChR/GABA/ecdysone/ryanodine/Ca-channel/complex-I pharmacophores don't share structural features. Worth reporting as an exploratory result either way -- see the same-MOA-class alternative (all-AChE or all-nAChR targets) if you want a run more likely to actually converge.",
+  "targets": ["CHEMBL4078", "CHEMBL2111384", "CHEMBL5445", "CHEMBL6045", "CHEMBL614865", "CHEMBL3868", "CHEMBL3762"],
+  "_targets_comment": "One target per MOA class: CHEMBL4078=acetylcholinesterase, CHEMBL2111384=nicotinic AChR, CHEMBL5445=GABA receptor/transporter, CHEMBL6045=ryanodine receptor, CHEMBL614865=mitochondrial complex I, CHEMBL3868=ecdysone receptor, CHEMBL3762=voltage-dependent Ca channel.",
   "task": "dta",
   "aggregation": "min",
   "_aggregation_comment": "'min' rewards candidates good against ALL targets (worst-case); 'mean' rewards good-on-average candidates; 'weighted' needs target_weights below.",
   "target_weights": {
-    "CHEMBL220": 1.0,
     "CHEMBL4078": 1.0,
-    "CHEMBL3199": 1.0,
     "CHEMBL2111384": 1.0,
-    "CHEMBL2366437": 1.0
+    "CHEMBL5445": 1.0,
+    "CHEMBL6045": 1.0,
+    "CHEMBL614865": 1.0,
+    "CHEMBL3868": 1.0,
+    "CHEMBL3762": 1.0
   },
   "use_real_seeds": true,
   "seed_source": {
