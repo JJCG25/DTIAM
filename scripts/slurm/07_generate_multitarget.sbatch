@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
-#SBATCH --partition=prod
+#SBATCH --partition=cpu-cvail01
 #
 # Multi-target (polypharmacology-style) GA run: one population scored jointly
 # against the 7 targets in generation_config.multitarget_example.json -- ONE
