@@ -71,13 +71,87 @@ class DTIAMFeatureBuilder:
         self._comp_model.model.to(device)
         self._comp_model.model.eval()
 
+        # BerMolPreTrainer.transform() builds a fresh BerMolTokenizer(self.vocab)
+        # on every single call (see BerMol/bermol/trainer.py) -- built once
+        # here instead, and reused for every molecule/batch.
+        from bermol.tokenizer import BerMolTokenizer
+
+        self._tokenizer = BerMolTokenizer(self._comp_model.vocab)
+        self._pad_token_id = self._comp_model.vocab.pad_index
+
         with open(protein_features_path, "rb") as handle:
             self._protein_features: Dict[str, "np.ndarray"] = pickle.load(handle)
 
         self._compound_cache: Dict[str, List[float]] = {}
 
+    def _compound_vectors_batch(self, smiles_list: List[str]) -> None:
+        """
+        Populate self._compound_cache for every not-yet-cached SMILES in
+        smiles_list with ONE batched BerMol forward pass, instead of one
+        forward pass per molecule (BerMolPreTrainer.transform() only accepts
+        a single SMILES -- see BerMol/bermol/trainer.py:117). A single tiny
+        per-molecule forward pass is too small to use more than a sliver of
+        multiple reserved CPUs; one batched matmul over N molecules actually
+        does.
+
+        Correctness note: BerMolEncoder pads on the right and the pooled
+        output only reads the CLS token at position 0 (BertPooler), which is
+        never a padded position -- so padding length doesn't change a given
+        molecule's pooled embedding, only which other molecules share its
+        batch.
+        """
+        new_smiles = [s for s in dict.fromkeys(smiles_list) if s not in self._compound_cache]
+        if not new_smiles:
+            return
+
+        token_seqs, valid_smiles = [], []
+        for smi in new_smiles:
+            try:
+                token_seqs.append(self._tokenizer.encode(smi).squeeze(0))
+                valid_smiles.append(smi)
+            except Exception:
+                # Invalid SMILES: leave uncached. build_batch's cache lookup
+                # will then KeyError loudly on it via a plain dict access,
+                # rather than silently caching garbage features.
+                continue
+
+        if not token_seqs:
+            return
+
+        max_len = max(seq.shape[0] for seq in token_seqs)
+        padded = torch.full((len(token_seqs), max_len), self._pad_token_id, dtype=torch.long)
+        # Additive attention mask: 0.0 for real tokens, large negative for
+        # padding, matching BertSelfAttention's `scores + attention_mask`.
+        # Shape must be [batch, 1, seq_len]: BertSelfAttention does exactly
+        # one torch.unsqueeze(attention_mask, 1) internally, so a plain
+        # [batch, seq_len] 2D mask ends up broadcast against
+        # [batch, heads, seq_q, seq_k] one dimension short -- it silently
+        # aligns the batch axis against the heads axis instead of erroring
+        # (or worse, produces wrong-but-plausible numbers whenever
+        # batch_size happens to equal num_attention_heads). Verified
+        # numerically: this 3D shape reproduces the unpadded single-molecule
+        # pooled output to float32 precision; a 2D mask does not.
+        attention_mask = torch.zeros((len(token_seqs), 1, max_len), dtype=torch.float)
+        for i, seq in enumerate(token_seqs):
+            seq_len = seq.shape[0]
+            padded[i, :seq_len] = seq
+            attention_mask[i, 0, seq_len:] = -10000.0
+
+        padded = padded.to(self.device)
+        attention_mask = attention_mask.to(self.device)
+
+        with torch.no_grad():
+            _, pooled = self._comp_model.model.encoder(padded, attention_mask)
+
+        pooled = pooled.cpu().detach().numpy()
+        for i, smi in enumerate(valid_smiles):
+            self._compound_cache[smi] = pooled[i].reshape(-1).tolist()
+
     def _compound_vector(self, smiles: str) -> List[float]:
         if smiles not in self._compound_cache:
+            # Fallback for direct single-molecule calls; build_batch below
+            # always precomputes the whole batch first, so this is normally
+            # already a cache hit by the time it runs.
             with torch.no_grad():
                 _, pooled = self._comp_model.transform(smiles, self.device)
             self._compound_cache[smiles] = pooled.cpu().detach().numpy().reshape(-1).tolist()
@@ -103,6 +177,7 @@ class DTIAMFeatureBuilder:
         if "smiles" not in smiles_target_df.columns or "target" not in smiles_target_df.columns:
             raise ValueError("smiles_target_df must contain 'smiles' and 'target' columns.")
 
+        self._compound_vectors_batch(smiles_target_df["smiles"].tolist())
         rows = [
             self._compound_vector(smiles) + self._protein_vector(target)
             for smiles, target in zip(smiles_target_df["smiles"], smiles_target_df["target"])
