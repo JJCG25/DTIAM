@@ -187,7 +187,10 @@ def run_pipeline(config: Dict) -> pd.DataFrame:
         features = feature_builder.build_batch(filtered[["smiles", "target"]])
         prediction_df = predictor.predict_all(features)
     else:
-        LOGGER.info("No DTIAM models configured; ranking with structural scores only")
+        LOGGER.warning(
+            "No DTIAM models configured -- score_and_rank will fail below, since ranking "
+            "is dta-only now (no structural fallback like QED remains)."
+        )
 
     ranked = scorer.score_and_rank(filtered, prediction_df, top_k=top_k)
     return ranked

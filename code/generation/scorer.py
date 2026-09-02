@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from typing import Dict, List
 
 import pandas as pd
@@ -6,27 +5,25 @@ import pandas as pd
 from rdkit import Chem
 
 
-@dataclass
-class ScoreWeights:
-    # QED removed on chemist feedback: acaricide ligands need not resemble
-    # approved human drugs (QED is calibrated to that profile specifically).
-    # Rebalanced from the previous dti=0.35/dta=0.35/moa=0.15/qed=0.15,
-    # keeping the same dti:dta:moa ratio (7:7:3) without qed's share.
-    dti: float = 0.4
-    dta: float = 0.4
-    moa: float = 0.2
-
-
 class CandidateScorer:
-    def __init__(self, weights: ScoreWeights = ScoreWeights()) -> None:
-        self.weights = weights
+    """
+    Ranks candidates by predicted dta alone.
+
+    Previously a weighted blend of dti/dta/moa/qed -- QED and Lipinski were
+    both removed on chemist feedback (acaricide ligands need not resemble
+    approved human drugs), and dti/moa were dropped too: dtiam_model_paths
+    only ever configures a dta predictor in practice, so those terms were
+    always 0.0 and did nothing except rescale the score column -- dead
+    weight, not a real multi-task blend. If dti/moa predictors are wired in
+    later, revisit this rather than silently re-adding zero-weighted terms.
+    """
 
     def filter_valid(self, candidates: pd.DataFrame) -> pd.DataFrame:
         """
         Drops only unparseable SMILES. No drug-likeness gating (Lipinski Ro5
         and QED were both removed on chemist feedback: acaricide ligands
         need not resemble approved human drugs, so neither should gate or
-        weight candidate selection here -- see ScoreWeights).
+        weight candidate selection here).
 
         In practice this rarely drops anything from GA-generated candidates,
         since MoleculeGA's mutate()/crossover() already only ever return
@@ -48,21 +45,20 @@ class CandidateScorer:
         top_k: int,
     ) -> pd.DataFrame:
         """
-        Rank candidates by composite score. When multiple distinct 'target'
-        values are present, top_k applies per target -- otherwise a single
-        target's candidates would crowd out every other target's results
-        from one global top_k list.
+        Rank candidates by dta alone. When multiple distinct 'target' values
+        are present, top_k applies per target -- otherwise a single target's
+        candidates would crowd out every other target's results from one
+        global top_k list.
         """
         merged = candidates.join(prediction_df, how="left")
-        for col in ["dti", "dta", "moa"]:
-            if col not in merged.columns:
-                merged[col] = 0.0
+        if "dta" not in merged.columns:
+            raise ValueError(
+                "score_and_rank requires a 'dta' prediction column -- ranking is dta-only "
+                "now (dti/moa/QED/Lipinski are no longer used), so dtiam_model_paths must "
+                "configure a 'dta' predictor."
+            )
 
-        merged["score"] = (
-            self.weights.dti * merged["dti"]
-            + self.weights.dta * merged["dta"]
-            + self.weights.moa * merged["moa"]
-        )
+        merged["score"] = merged["dta"]
         merged = merged.sort_values("score", ascending=False)
 
         if "target" in merged.columns and merged["target"].nunique() > 1:

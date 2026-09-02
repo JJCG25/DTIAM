@@ -11,10 +11,9 @@ except Exception:  # pragma: no cover
     DTIAMFeatureBuilder = None
 
 try:
-    from .scorer import CandidateScorer, ScoreWeights, export_candidates
+    from .scorer import CandidateScorer, export_candidates
 except Exception:  # pragma: no cover
     CandidateScorer = None
-    ScoreWeights = None
     export_candidates = None
 
 __all__ = [
@@ -24,6 +23,5 @@ __all__ = [
     "DTIAMPredictor",
     "DTIAMFeatureBuilder",
     "CandidateScorer",
-    "ScoreWeights",
     "export_candidates",
 ]
