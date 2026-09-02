@@ -4,7 +4,6 @@ from typing import Dict, List
 import pandas as pd
 
 from rdkit import Chem
-from rdkit.Chem import Crippen, Descriptors
 
 
 @dataclass
@@ -22,27 +21,22 @@ class CandidateScorer:
     def __init__(self, weights: ScoreWeights = ScoreWeights()) -> None:
         self.weights = weights
 
-    @staticmethod
-    def _lipinski_pass(mol: Chem.Mol) -> bool:
-        if mol is None:
-            return False
-        return (
-            Descriptors.MolWt(mol) <= 500
-            and Crippen.MolLogP(mol) <= 5
-            and Descriptors.NumHDonors(mol) <= 5
-            and Descriptors.NumHAcceptors(mol) <= 10
-        )
+    def filter_valid(self, candidates: pd.DataFrame) -> pd.DataFrame:
+        """
+        Drops only unparseable SMILES. No drug-likeness gating (Lipinski Ro5
+        and QED were both removed on chemist feedback: acaricide ligands
+        need not resemble approved human drugs, so neither should gate or
+        weight candidate selection here -- see ScoreWeights).
 
-    def filter_druglike(self, candidates: pd.DataFrame) -> pd.DataFrame:
-        """Lipinski Ro5 filter only -- QED is no longer computed/used (see
-        ScoreWeights)."""
+        In practice this rarely drops anything from GA-generated candidates,
+        since MoleculeGA's mutate()/crossover() already only ever return
+        RDKit-sanitized molecules; it's here as a defensive check for other
+        generator backends (e.g. a VAE strategy) that might emit raw,
+        unsanitized SMILES.
+        """
         rows: List[Dict] = []
         for _, row in candidates.iterrows():
-            smiles = row["smiles"]
-            mol = Chem.MolFromSmiles(smiles)
-            if mol is None:
-                continue
-            if not self._lipinski_pass(mol):
+            if Chem.MolFromSmiles(row["smiles"]) is None:
                 continue
             rows.append(row.to_dict())
         return pd.DataFrame(rows)

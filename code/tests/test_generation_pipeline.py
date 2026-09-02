@@ -64,15 +64,23 @@ class GeneratorTests(unittest.TestCase):
 
 @unittest.skipIf(pd is None or CandidateScorer is None, "scoring dependencies are missing")
 class ScorerTests(unittest.TestCase):
-    def test_filter_druglike(self):
+    def test_filter_valid_drops_only_unparseable_smiles(self):
+        # A molecule that fails Lipinski Ro5 (MW > 500, e.g.) should still
+        # survive now -- Lipinski and QED were both removed on chemist
+        # feedback (acaricide ligands need not be drug-like). Only
+        # unparseable SMILES get dropped.
+        big_mw_smiles = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
         df = pd.DataFrame(
-            [{"target": "P1", "smiles": "CCO"}, {"target": "P1", "smiles": "invalid"}]
+            [
+                {"target": "P1", "smiles": "CCO"},
+                {"target": "P1", "smiles": "invalid"},
+                {"target": "P1", "smiles": big_mw_smiles},
+            ]
         )
         scorer = CandidateScorer()
-        filtered = scorer.filter_druglike(df)
-        self.assertEqual(len(filtered), 1)
-        # QED removed on chemist feedback (acaricide ligands need not be
-        # drug-like) -- filter_druglike no longer computes or adds it.
+        filtered = scorer.filter_valid(df)
+        self.assertEqual(len(filtered), 2)
+        self.assertIn(big_mw_smiles, filtered["smiles"].tolist())
         self.assertNotIn("qed", filtered.columns)
 
     def test_score_and_rank_is_per_target_when_multiple_targets_present(self):

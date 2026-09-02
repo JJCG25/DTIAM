@@ -178,8 +178,8 @@ def run_pipeline(config: Dict) -> pd.DataFrame:
         )
         candidates = _build_candidates(generated_smiles, targets)
 
-    LOGGER.info("Filtering generated molecules by drug-likeness")
-    filtered = scorer.filter_druglike(candidates)
+    LOGGER.info("Filtering generated molecules for valid SMILES")
+    filtered = scorer.filter_valid(candidates)
 
     prediction_df = pd.DataFrame(index=filtered.index)
     if predictor is not None:
