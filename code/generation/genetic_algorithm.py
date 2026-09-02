@@ -12,7 +12,6 @@ import random
 from typing import Dict, List, Optional, Tuple
 
 from rdkit import Chem, RDLogger
-from rdkit.Chem import QED
 
 try:
     import numpy as np
@@ -160,13 +159,14 @@ class MoleculeGA:
         crossover_rate: float = 0.5,
         elite_fraction: float = 0.1,
         tournament_size: int = 3,
-        qed_weight: float = 0.3,
     ) -> None:
+        # QED-blended fitness removed on chemist feedback: acaricide ligands
+        # need not resemble approved human drugs (QED is calibrated to that
+        # profile specifically). Fitness is now the raw predicted task score.
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.elite_fraction = elite_fraction
         self.tournament_size = tournament_size
-        self.qed_weight = qed_weight
 
     def _seed_population(self, seed_smiles: List[str], population_size: int) -> List[Chem.Mol]:
         seed_mols = [m for m in (Chem.MolFromSmiles(s) for s in seed_smiles) if m is not None]
@@ -212,14 +212,7 @@ class MoleculeGA:
         smiles = [Chem.MolToSmiles(mol) for mol in population]
         features = feature_builder.build(smiles, target)
         task_scores = np.asarray(predictor.predict_all(features)[task].values, dtype=float)
-
-        if self.qed_weight:
-            qed_scores = np.array([QED.qed(mol) for mol in population])
-            span = task_scores.max() - task_scores.min() + 1e-8
-            normalized_task = (task_scores - task_scores.min()) / span
-            fitness = (1 - self.qed_weight) * normalized_task + self.qed_weight * qed_scores
-        else:
-            fitness = task_scores
+        fitness = task_scores
 
         return fitness, task_scores
 
@@ -275,11 +268,7 @@ class MoleculeGA:
         else:
             raise ValueError(f"Unknown aggregation: {aggregation!r} (expected 'min', 'mean', or 'weighted')")
 
-        if self.qed_weight:
-            qed_scores = np.array([QED.qed(mol) for mol in population])
-            fitness = (1 - self.qed_weight) * task_component + self.qed_weight * qed_scores
-        else:
-            fitness = task_component
+        fitness = task_component
 
         return fitness, target_scores
 

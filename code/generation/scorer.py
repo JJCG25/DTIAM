@@ -4,15 +4,18 @@ from typing import Dict, List
 import pandas as pd
 
 from rdkit import Chem
-from rdkit.Chem import Crippen, Descriptors, QED
+from rdkit.Chem import Crippen, Descriptors
 
 
 @dataclass
 class ScoreWeights:
-    dti: float = 0.35
-    dta: float = 0.35
-    moa: float = 0.15
-    qed: float = 0.15
+    # QED removed on chemist feedback: acaricide ligands need not resemble
+    # approved human drugs (QED is calibrated to that profile specifically).
+    # Rebalanced from the previous dti=0.35/dta=0.35/moa=0.15/qed=0.15,
+    # keeping the same dti:dta:moa ratio (7:7:3) without qed's share.
+    dti: float = 0.4
+    dta: float = 0.4
+    moa: float = 0.2
 
 
 class CandidateScorer:
@@ -31,6 +34,8 @@ class CandidateScorer:
         )
 
     def filter_druglike(self, candidates: pd.DataFrame) -> pd.DataFrame:
+        """Lipinski Ro5 filter only -- QED is no longer computed/used (see
+        ScoreWeights)."""
         rows: List[Dict] = []
         for _, row in candidates.iterrows():
             smiles = row["smiles"]
@@ -39,9 +44,7 @@ class CandidateScorer:
                 continue
             if not self._lipinski_pass(mol):
                 continue
-            enriched = row.to_dict()
-            enriched["qed"] = float(QED.qed(mol))
-            rows.append(enriched)
+            rows.append(row.to_dict())
         return pd.DataFrame(rows)
 
     def score_and_rank(
@@ -57,7 +60,7 @@ class CandidateScorer:
         from one global top_k list.
         """
         merged = candidates.join(prediction_df, how="left")
-        for col in ["dti", "dta", "moa", "qed"]:
+        for col in ["dti", "dta", "moa"]:
             if col not in merged.columns:
                 merged[col] = 0.0
 
@@ -65,7 +68,6 @@ class CandidateScorer:
             self.weights.dti * merged["dti"]
             + self.weights.dta * merged["dta"]
             + self.weights.moa * merged["moa"]
-            + self.weights.qed * merged["qed"]
         )
         merged = merged.sort_values("score", ascending=False)
 

@@ -71,25 +71,27 @@ class ScorerTests(unittest.TestCase):
         scorer = CandidateScorer()
         filtered = scorer.filter_druglike(df)
         self.assertEqual(len(filtered), 1)
-        self.assertIn("qed", filtered.columns)
+        # QED removed on chemist feedback (acaricide ligands need not be
+        # drug-like) -- filter_druglike no longer computes or adds it.
+        self.assertNotIn("qed", filtered.columns)
 
     def test_score_and_rank_is_per_target_when_multiple_targets_present(self):
         # target A's candidates all score higher than target B's -- a single
         # global top_k would previously return zero results for target B.
         candidates = pd.DataFrame(
-            [{"target": "A", "smiles": "CCO", "qed": 0.9}, {"target": "A", "smiles": "CCN", "qed": 0.8}]
-            + [{"target": "B", "smiles": "CCC", "qed": 0.1}, {"target": "B", "smiles": "CCF", "qed": 0.05}]
+            [{"target": "A", "smiles": "CCO"}, {"target": "A", "smiles": "CCN"}]
+            + [{"target": "B", "smiles": "CCC"}, {"target": "B", "smiles": "CCF"}]
         )
-        predictions = pd.DataFrame(index=candidates.index)
+        predictions = pd.DataFrame({"dta": [0.9, 0.8, 0.1, 0.05]}, index=candidates.index)
         scorer = CandidateScorer()
         ranked = scorer.score_and_rank(candidates, predictions, top_k=1)
         self.assertEqual(sorted(ranked["target"]), ["A", "B"])
 
     def test_score_and_rank_is_global_for_a_single_target(self):
         candidates = pd.DataFrame(
-            [{"target": "A", "smiles": "CCO", "qed": 0.9}, {"target": "A", "smiles": "CCN", "qed": 0.1}]
+            [{"target": "A", "smiles": "CCO"}, {"target": "A", "smiles": "CCN"}]
         )
-        predictions = pd.DataFrame(index=candidates.index)
+        predictions = pd.DataFrame({"dta": [0.9, 0.1]}, index=candidates.index)
         scorer = CandidateScorer()
         ranked = scorer.score_and_rank(candidates, predictions, top_k=1)
         self.assertEqual(len(ranked), 1)
@@ -130,9 +132,7 @@ class GeneticAlgorithmTests(unittest.TestCase):
             def build(self, smiles_list, target):
                 return pd.DataFrame({"smiles": list(smiles_list), "target": target})
 
-        ga = MoleculeGA(
-            mutation_rate=0.7, crossover_rate=0.5, elite_fraction=0.2, qed_weight=0.0
-        )
+        ga = MoleculeGA(mutation_rate=0.7, crossover_rate=0.5, elite_fraction=0.2)
         results = ga.run(
             predictor=FakePredictor(model_paths={"dta": "unused"}),
             task="dta",

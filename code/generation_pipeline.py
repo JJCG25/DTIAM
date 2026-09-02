@@ -87,7 +87,6 @@ def _run_genetic_algorithm(
         crossover_rate=float(ga_config.get("crossover_rate", 0.5)),
         elite_fraction=float(ga_config.get("elite_fraction", 0.1)),
         tournament_size=int(ga_config.get("tournament_size", 3)),
-        qed_weight=float(ga_config.get("qed_weight", 0.3)),
     )
 
     frames = []

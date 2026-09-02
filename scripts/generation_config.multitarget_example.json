@@ -29,7 +29,6 @@
     "crossover_rate": 0.5,
     "elite_fraction": 0.1,
     "tournament_size": 3,
-    "qed_weight": 0.3,
     "top_k": 20
   },
   "output_dir": "results/generation/multitarget",

@@ -17,8 +17,6 @@ from pathlib import Path
 from typing import Dict, List
 
 import pandas as pd
-from rdkit import Chem
-from rdkit.Chem import QED
 
 from generation.featurizer import DTIAMFeatureBuilder
 from generation.genetic_algorithm import MoleculeGA
@@ -90,7 +88,6 @@ def run_pipeline(config: Dict) -> pd.DataFrame:
         crossover_rate=float(ga_config.get("crossover_rate", 0.5)),
         elite_fraction=float(ga_config.get("elite_fraction", 0.1)),
         tournament_size=int(ga_config.get("tournament_size", 3)),
-        qed_weight=float(ga_config.get("qed_weight", 0.3)),
     )
 
     LOGGER.info("Running multi-target GA against %d targets: %s", len(targets), targets)
@@ -109,12 +106,7 @@ def run_pipeline(config: Dict) -> pd.DataFrame:
 
     rows = []
     for smi, per_target_scores, fitness in results:
-        mol = Chem.MolFromSmiles(smi)
-        row = {
-            "smiles": smi,
-            "fitness": fitness,
-            "qed": QED.qed(mol) if mol is not None else None,
-        }
+        row = {"smiles": smi, "fitness": fitness}
         for target, score in per_target_scores.items():
             row[f"{task}_{target}"] = score
         rows.append(row)
