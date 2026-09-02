@@ -1,0 +1,17 @@
+{
+  "_comment": "Scores REAL, literature-backed ligands (recovered from the raw pesticide reference CSVs) against dta_davis, as a baseline to compare against top_candidates.csv's GA-generated candidates for the same 53 acaricide targets.",
+  "task": "dta",
+  "targets_csv": "data/acaricide/targets.csv",
+  "_targets_comment": "No 'targets' list given, so all 53 target_chembl_id values from targets_csv are used -- same universe as top_candidates.csv, for direct comparison.",
+  "seed_source": {
+    "relations_csv": "pesticide_ligand_target_relations_PROTEINS_WITH_DOI_FINAL.csv",
+    "properties_csv": "pesticide_properties_unified(1).csv"
+  },
+  "max_per_target": null,
+  "output_dir": "results/generation/reference_ligands",
+  "dtiam_model_paths": {
+    "dta": "models/dta_davis"
+  },
+  "bermol_model_path": "BerMolModel_base.pkl",
+  "protein_features_path": "data/acaricide/features/protein_features.pkl"
+}
