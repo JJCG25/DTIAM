@@ -5,9 +5,17 @@
 #SBATCH --error=logs/error_%j.err
 #SBATCH --time=04:00:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=cpu-cvail01
+#
+# --cpus-per-task=4: no multiprocessing/joblib anywhere in code/generation/ --
+# the GA loop (mutation, crossover, selection) is single-threaded RDKit/Python;
+# the only multi-threaded work is PyTorch's intra-op threading during the
+# batched BerMol forward pass and whatever AutoGluon's models use internally
+# at predict() time, both on small (~population_size) batches where returns
+# past a few threads are marginal. Bumped down from 8 -- if wall-clock grows
+# noticeably, this wasn't the bottleneck and cpus aren't the fix.
 #
 # Stage 3: run the genetic-algorithm generation pipeline against all 53
 # curated acaricide targets (data/acaricide/targets.csv), producing a

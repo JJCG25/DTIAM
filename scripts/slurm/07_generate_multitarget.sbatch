@@ -5,9 +5,15 @@
 #SBATCH --error=logs/error_%j.err
 #SBATCH --time=02:30:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=cpu-cvail01
+#
+# --cpus-per-task=4: same reasoning as 03_generate_acaricide.sbatch -- no
+# multiprocessing/joblib in code/generation/, GA loop is single-threaded,
+# only the batched BerMol forward pass and AutoGluon predict() get any
+# multi-threading, and both run on small batches where more than a few
+# threads doesn't help.
 #
 # Multi-target (polypharmacology-style) GA run: one population scored jointly
 # against the 7 targets in generation_config.multitarget_example.json -- ONE

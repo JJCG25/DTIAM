@@ -5,7 +5,7 @@
 #SBATCH --error=logs/error_%j.err
 #SBATCH --time=00:30:00
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --mem=8G
 #SBATCH --partition=cpu-cvail01
 #
