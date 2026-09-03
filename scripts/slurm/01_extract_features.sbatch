@@ -8,7 +8,6 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
 #SBATCH --partition=gpu-cvail01
-#SBATCH --gres=gpu:1
 #
 # Stage 1: feature extraction.
 # - BerMol (compound) + ESM-2 (protein) features for the six benchmark
@@ -21,9 +20,11 @@
 # (RTX PRO 6000 Blackwell, sm_120 -- torch 1.12.1 only supports up to
 # sm_70), so "cuda" failed with "no kernel image is available for execution
 # on the device" despite torch.cuda.is_available() reporting True. Now
-# running on gpu-cvail01, where that's resolved. --time cut from the old
-# CPU run's 24h ceiling to 6h as a rough estimate for ESM-2-650M on GPU --
-# check the actual Elapsed on the first run and tighten/loosen from there.
+# running on gpu-cvail01, where that's resolved. No --gres=gpu:1: the
+# partition has a single GPU, so there's nothing to select between. --time
+# cut from the old CPU run's 24h ceiling to 6h as a rough estimate for
+# ESM-2-650M on GPU -- check the actual Elapsed on the first run and
+# tighten/loosen from there.
 
 set -euo pipefail
 
