@@ -6,14 +6,16 @@
 #SBATCH --time=00:30:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=8G
+#SBATCH --mem=6G
 #SBATCH --partition=cpu-cvail01
 #
 # --time=00:30:00: job 16665 actually completed this in 0:11:51 (8 cpus) --
 # the old 02:30:00 ceiling was 12x that; ~2.5x headroom is plenty.
 #
-# --mem=8G: job 16665's .batch step peaked at MaxRSS=4.44G against the old
-# 16G request (28% used) -- ~80% headroom on top of the real peak.
+# --mem=6G: job 16665's .batch step peaked at MaxRSS=4.44G (~35% headroom
+# here). Same reasoning as 03_generate_acaricide.sbatch -- memory here is
+# mostly fixed-size, but this is one data point; watch error_%j.err for an
+# OOM kill on the next run and bump back up if it hits.
 #
 # --cpus-per-task=4: same reasoning as 03_generate_acaricide.sbatch -- no
 # multiprocessing/joblib in code/generation/, GA loop is single-threaded,
