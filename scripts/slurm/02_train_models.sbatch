@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=40G
-#SBATCH --partition=prod
+#SBATCH --partition=cpu-cvail01
 #
 # Stage 2: train the DTIAM AutoGluon predictors (dti/yamanishi_08,
 # dta/davis, moa/activation) used to score generated candidates. Depends on

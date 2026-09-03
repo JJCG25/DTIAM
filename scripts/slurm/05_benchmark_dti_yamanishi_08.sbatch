@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=40G
-#SBATCH --partition=prod
+#SBATCH --partition=cpu-cvail01
 #
 # Diagnostic-only: real 10-fold benchmark of the dti/yamanishi_08 model, same
 # preset/features as the deployed models/dti_yamanishi_08 predictor

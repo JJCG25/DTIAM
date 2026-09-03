@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
-#SBATCH --partition=prod
+#SBATCH --partition=cpu-cvail01
 #
 # Stage 1: feature extraction.
 # - BerMol (compound) + ESM-2 (protein) features for the six benchmark

@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16G
-#SBATCH --partition=prod
+#SBATCH --partition=cpu-cvail01
 #
 # Stage 3: run the genetic-algorithm generation pipeline against all 53
 # curated acaricide targets (data/acaricide/targets.csv), producing a

@@ -7,7 +7,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=40G
-#SBATCH --partition=prod
+#SBATCH --partition=cpu-cvail01
 #
 # Diagnostic-only: real 5-fold benchmark of the moa/activation model, same
 # preset/features as the deployed models/moa_activation predictor
