@@ -3,11 +3,12 @@
 #SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
-#SBATCH --time=24:00:00
+#SBATCH --time=06:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=32G
-#SBATCH --partition=cpu-cvail01
+#SBATCH --partition=gpu-cvail01
+#SBATCH --gres=gpu:1
 #
 # Stage 1: feature extraction.
 # - BerMol (compound) + ESM-2 (protein) features for the six benchmark
@@ -15,13 +16,14 @@
 # - ESM-2 features for the 53 curated acaricide targets (needed to score
 #   generated candidates against them in stage 3).
 #
-# Running on CPU (--device cpu): the pinned torch==1.12.1 build has no
-# compiled kernels for this node's GPU (RTX PRO 6000 Blackwell, sm_120 --
-# torch 1.12.1 only supports up to sm_70), so "cuda" fails with
-# "no kernel image is available for execution on the device" despite
-# torch.cuda.is_available() reporting True. CPU is slower but always works;
-# --time is set to this partition's 24h max to give ESM-2-650M room to run
-# on ~2000-3000 unique sequences without batching.
+# Running on GPU (--device cuda): previously forced to CPU because the
+# pinned torch==1.12.1 build had no compiled kernels for that node's GPU
+# (RTX PRO 6000 Blackwell, sm_120 -- torch 1.12.1 only supports up to
+# sm_70), so "cuda" failed with "no kernel image is available for execution
+# on the device" despite torch.cuda.is_available() reporting True. Now
+# running on gpu-cvail01, where that's resolved. --time cut from the old
+# CPU run's 24h ceiling to 6h as a rough estimate for ESM-2-650M on GPU --
+# check the actual Elapsed on the first run and tighten/loosen from there.
 
 set -euo pipefail
 
@@ -34,10 +36,10 @@ conda activate dtiam
 
 # Move to working directory and run
 cd /home/juanjo/thesis/DTIAM/code
-bash data_prepare.sh cpu
+bash data_prepare.sh cuda
 
 cd /home/juanjo/thesis/DTIAM
 python code/data_process/extract_target_features.py \
     --targets-csv data/acaricide/targets.csv \
     --output data/acaricide/features/protein_features.pkl \
-    --device cpu
+    --device cuda
