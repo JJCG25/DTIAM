@@ -36,7 +36,7 @@
 # and pesticide_properties_unified(1).csv at the repo root (see
 # code/generation/seed_loader.py) for real ligand seeds -- falls back to the
 # 4 generic seed_smiles in the config if either file is missing or has no
-# matches for these 5 targets.
+# matches for these 7 targets.
 #
 # No --gres=gpu:1: same reasoning as 03_generate_acaricide.sbatch --
 # DTIAMFeatureBuilder defaults to device="cpu" and AutoGluon prediction is
