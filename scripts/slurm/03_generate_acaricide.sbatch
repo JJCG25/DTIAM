@@ -6,11 +6,14 @@
 #SBATCH --time=03:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=16G
+#SBATCH --mem=10G
 #SBATCH --partition=cpu-cvail01
 #
 # --time=03:00:00: job 15149 actually completed this in 2:23:51 (8 cpus,
 # before the cpus-per-task trim below) -- ~35 min headroom on top of that.
+#
+# --mem=10G: job 15149's .batch step peaked at MaxRSS=6.45G against the old
+# 16G request (40% used) -- ~55% headroom on top of the real peak.
 #
 # --cpus-per-task=4: no multiprocessing/joblib anywhere in code/generation/ --
 # the GA loop (mutation, crossover, selection) is single-threaded RDKit/Python;
