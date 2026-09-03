@@ -3,11 +3,14 @@
 #SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
-#SBATCH --time=04:00:00
+#SBATCH --time=03:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=cpu-cvail01
+#
+# --time=03:00:00: job 15149 actually completed this in 2:23:51 (8 cpus,
+# before the cpus-per-task trim below) -- ~35 min headroom on top of that.
 #
 # --cpus-per-task=4: no multiprocessing/joblib anywhere in code/generation/ --
 # the GA loop (mutation, crossover, selection) is single-threaded RDKit/Python;

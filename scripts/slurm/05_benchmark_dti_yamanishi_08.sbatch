@@ -3,11 +3,15 @@
 #SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
-#SBATCH --time=11:00:00
+#SBATCH --time=13:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=40G
 #SBATCH --partition=cpu-cvail01
+#
+# --time=13:00:00: job 15707 actually took 10:03:39 against the old 11:00:00
+# ceiling -- only 57 min of headroom, too tight given fold-to-fold variance.
+# Bumped up, not down.
 #
 # Diagnostic-only: real 10-fold benchmark of the dti/yamanishi_08 model, same
 # preset/features as the deployed models/dti_yamanishi_08 predictor

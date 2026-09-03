@@ -3,11 +3,14 @@
 #SBATCH --account=mol_thesis
 #SBATCH --output=logs/result_%j.out
 #SBATCH --error=logs/error_%j.err
-#SBATCH --time=02:30:00
+#SBATCH --time=00:30:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
 #SBATCH --partition=cpu-cvail01
+#
+# --time=00:30:00: job 16665 actually completed this in 0:11:51 (8 cpus) --
+# the old 02:30:00 ceiling was 12x that; ~2.5x headroom is plenty.
 #
 # --cpus-per-task=4: same reasoning as 03_generate_acaricide.sbatch -- no
 # multiprocessing/joblib in code/generation/, GA loop is single-threaded,
